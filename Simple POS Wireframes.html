@@ -287,7 +287,7 @@ body.mode-kid .confirm{min-height:72px;font-size:19px}
 
   <div class="switchrow">
     <div class="grp shell">
-      <button class="active" data-shell="cash">Easy register</button>
+     <button data-shell="cash">Easy register</button>
       <button class="active" data-shell="config">Easy configuration</button>
       
     </div>
@@ -545,8 +545,18 @@ body.mode-kid .confirm{min-height:72px;font-size:19px}
   function setMode(m){document.body.classList.remove('mode-pro','mode-easy','mode-kid');document.body.classList.add('mode-'+m);modeBtns.forEach(b=>b.classList.toggle('active',b.dataset.mode===m));try{localStorage.setItem('pem_mode',m)}catch(e){}const s=document.getElementById('tw-mode');if(s)s.value=m}
   modeBtns.forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
 
-  try{const s=localStorage.getItem('pem_shell');if(s)showShell(s);const m=localStorage.getItem('pem_mode');if(m)setMode(m);else setMode('easy')}catch(e){setMode('easy')}
+ try{
+  const s=localStorage.getItem('pem_shell');
+  if(s)showShell(s);
+  else showShell('config'); // 👈 default landing
 
+  const m=localStorage.getItem('pem_mode');
+  if(m)setMode(m);
+  else setMode('easy');
+}catch(e){
+  showShell('config'); // 👈 fallback
+  setMode('easy');
+}
   function setGreen(hex){document.documentElement.style.setProperty('--green',hex)}
   function setCurrency(sym){document.querySelectorAll('*').forEach(n=>{if(n.children.length===0&&n.textContent){n.textContent=n.textContent.replace(/[€₹$](?=\s*\d|\s*0)/g,sym)}})}
 
