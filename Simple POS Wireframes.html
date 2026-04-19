@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PEM touch — simple</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f5f7;
+  --panel:#ffffff;
+  --panel-2:#fafbfc;
+  --line:#e5e7eb;
+  --line-2:#eef0f3;
+  --text:#0b0d10;
+  --text-2:#3a3f47;
+  --muted:#8a909a;
+  --muted-2:#b5bac2;
+  --black:#0b0d10;
+  --black-2:#17191d;
+  --green:#22A447;
+  --green-ink:#0f6a2a;
+  --green-soft:#e6f6ec;
+  --green-softer:#f1faf4;
+  --red:#d64545;
+  --red-soft:#fdecec;
+  --shadow:0 1px 2px rgba(10,12,16,.04),0 8px 20px rgba(10,12,16,.05);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,sans-serif;-webkit-font-smoothing:antialiased}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+
+.app{max-width:1440px;margin:0 auto;padding:14px}
+
+/* top bar */
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:0 4px 10px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;gap:2px}
+.brand h1{margin:0;font-size:17px;font-weight:800;letter-spacing:-.01em}
+.brand p{margin:0;font-size:12px;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.meta .pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:4px 10px;font-size:11.5px;color:var(--text-2);font-weight:500}
+.meta .pill b{color:var(--text);font-weight:700}
+.meta .pill.ok{color:var(--green-ink);border-color:#bfe6c9;background:var(--green-softer)}
+.meta .pill.ok::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--green)}
+
+/* shell + mode switch */
+.switchrow{display:flex;gap:6px;align-items:center;padding:6px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:10px;flex-wrap:wrap}
+.switchrow .grp{display:flex;gap:4px}
+.switchrow .grp.grow{flex:1}
+.switchrow button{border:none;background:transparent;padding:8px 14px;border-radius:10px;font-size:13px;font-weight:600;color:var(--text-2)}
+.switchrow button.active{background:var(--black);color:#fff}
+.switchrow .grp.mode button.active{background:var(--green);color:#fff}
+.switchrow .divider{width:1px;height:26px;background:var(--line)}
+
+.view{display:none}
+.view.active{display:block}
+
+/* ======== REGISTER LAYOUT (3 columns, matches screenshot) ======== */
+.reg{display:grid;grid-template-columns:minmax(280px,320px) minmax(380px,1fr) minmax(340px,380px);gap:12px;align-items:stretch}
+
+/* LEFT: bill panel (paper feel, white card) */
+.bill{background:#fff;border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;overflow:hidden}
+.bill-head{display:grid;grid-template-columns:1fr 1fr;gap:2px;padding:14px 16px;border-bottom:1px solid var(--line-2);background:var(--panel-2)}
+.bill-head .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.bill-head .v{font-size:14px;font-weight:700;margin-top:3px}
+.bill-lines{padding:10px 10px;display:flex;flex-direction:column;gap:6px;flex:1;overflow:auto;min-height:220px}
+.bline{display:grid;grid-template-columns:1fr auto 30px;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line-2);background:#fff}
+.bline:hover{border-color:var(--line)}
+.bline .name{font-size:14px;font-weight:700;line-height:1.2}
+.bline .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.bline .amt{font-size:14px;font-weight:700}
+.bline .x{width:28px;height:28px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--muted);display:grid;place-items:center;font-size:12px}
+.bline .x:hover{background:var(--red-soft);color:var(--red);border-color:#f4c2c2}
+.bill-totals{border-top:1px dashed var(--line);padding:14px 16px;display:grid;gap:8px;background:var(--panel-2)}
+.ttl{display:flex;justify-content:space-between;align-items:baseline;font-size:13px;color:var(--muted)}
+.ttl strong{color:var(--text);font-weight:700;font-size:14px}
+.ttl.grand{padding-top:8px;border-top:1px solid var(--line);margin-top:4px;font-size:14px;color:var(--text)}
+.ttl.grand strong{font-size:26px;font-weight:900;color:var(--green-ink);letter-spacing:-.02em}
+.bill-footer{padding:12px 16px;border-top:1px solid var(--line-2);background:#fff;display:grid;gap:6px}
+.bline-note{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--muted);gap:8px}
+.bline-note b{color:var(--text-2);font-weight:600}
+.bline-note.pay{background:var(--green-softer);border:1px solid #c9e8d2;border-radius:10px;padding:8px 10px;color:var(--green-ink)}
+.bline-note.pay b{color:var(--green-ink)}
+.bline-note .iconbox{width:18px;height:14px;border:1px solid currentColor;border-radius:3px;display:inline-block;margin-right:4px;opacity:.7}
+
+/* CENTER: sell panel */
+.sell{display:flex;flex-direction:column;gap:10px}
+.tabbar{display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:5px}
+.tabbar button{border:none;border-radius:10px;padding:10px 12px;background:transparent;color:var(--text-2);font-weight:700;font-size:13px}
+.tabbar button.active{background:var(--black);color:#fff}
+
+.mainaction{background:var(--black);color:#fff;border:none;border-radius:14px;padding:18px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:58px;box-shadow:0 6px 14px rgba(11,13,16,.2)}
+.mainaction .plus{width:20px;height:20px;display:inline-grid;place-items:center;color:var(--green);font-size:18px;font-weight:900}
+
+.amount-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.amount-card .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.amount-card .v{font-size:34px;font-weight:900;letter-spacing:-.02em;margin-top:2px}
+.amount-card .v.zero{color:var(--muted-2)}
+.amount-card .h{font-size:12px;color:var(--muted);margin-top:4px}
+
+.section{display:flex;flex-direction:column;gap:8px}
+.section .label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:0 2px}
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;text-align:left;min-height:70px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.tile:hover{border-color:var(--text-2)}
+.tile.active{background:var(--black);color:#fff;border-color:var(--black)}
+.tile.active .sub{color:var(--muted-2)}
+.tile strong{font-size:15px;font-weight:800;line-height:1.15}
+.tile .sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* RIGHT: keypad + total + payment */
+.right{display:flex;flex-direction:column;gap:10px}
+.right .cap{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;padding:0 2px}
+.keypad-wrap{background:#fff;border:1px solid var(--line);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:10px}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.key{background:#fff;border:1px solid var(--line);border-radius:12px;min-height:62px;font-size:22px;font-weight:800;color:var(--text);display:grid;place-items:center}
+.key:hover{background:var(--panel-2)}
+.key.muted{background:var(--panel-2);color:var(--muted)}
+.key.back{color:var(--muted)}
+.key.back svg{width:22px;height:22px}
+.clear-btn{min-height:44px;background:var(--red-soft);color:var(--red);border:1px solid #f4c2c2;border-radius:10px;font-weight:700;font-size:13px}
+
+.total-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px}
+.total-card .k{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.total-card .v{font-size:32px;font-weight:900;color:var(--green-ink);letter-spacing:-.02em;margin-top:2px}
+.total-card .h{font-size:11.5px;color:var(--muted);margin-top:4px}
+
+.paygrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.paytile{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;text-align:left;min-height:64px;display:flex;flex-direction:column;justify-content:center}
+.paytile strong{font-size:14px;font-weight:800}
+.paytile .sub{font-size:11px;color:var(--muted);margin-top:2px}
+.paytile.active{background:var(--black);color:#fff;border-color:var(--black);position:relative}
+.paytile.active .sub{color:var(--muted-2)}
+.paytile.active::after{content:"✓";position:absolute;top:8px;right:10px;color:var(--green);font-weight:900;font-size:13px}
+
+.confirm{background:var(--green);color:#fff;border:none;border-radius:14px;padding:16px;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px;min-height:58px;box-shadow:0 6px 14px rgba(34,164,71,.25)}
+.confirm .pill{background:rgba(255,255,255,.18);padding:2px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-left:6px}
+.confirm .plus{font-size:18px;font-weight:900}
+
+/* ======== EASY CONFIG (simplified) ======== */
+.config{display:grid;grid-template-columns:260px 1fr;gap:12px}
+.config-side{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px;min-height:600px}
+.config-side h3{margin:0;font-size:14px;font-weight:800}
+.config-side p{margin:0;color:var(--muted);font-size:12px;line-height:1.4}
+.minikv{display:grid;gap:6px}
+.minikv .row{display:flex;justify-content:space-between;align-items:baseline;padding:8px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel-2)}
+.minikv .row .k{font-size:11px;color:var(--muted);font-weight:600}
+.minikv .row .v{font-size:12px;color:var(--text);font-weight:700}
+
+.config-main{display:flex;flex-direction:column;gap:12px}
+.cfg-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.cfg-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;min-height:120px;display:flex;flex-direction:column;gap:6px;text-align:left}
+.cfg-card .ico{width:36px;height:36px;border-radius:10px;background:var(--green-softer);color:var(--green-ink);display:grid;place-items:center;font-weight:800;margin-bottom:4px}
+.cfg-card h4{margin:0;font-size:14px;font-weight:800}
+.cfg-card p{margin:0;font-size:12px;color:var(--muted);line-height:1.4}
+.cfg-card.expert{border-style:dashed;border-color:var(--muted-2)}
+.cfg-card.expert .ico{background:var(--panel-2);color:var(--muted)}
+.cfg-card:hover{border-color:var(--black)}
+
+.guided{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.guided h3{margin:0;font-size:14px;font-weight:800}
+.guided p{margin:0;color:var(--muted);font-size:12px}
+.stepgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stepcard{display:flex;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff}
+.stepcard .n{width:28px;height:28px;border-radius:50%;background:var(--panel-2);color:var(--muted);display:grid;place-items:center;font-size:12px;font-weight:800;flex:0 0 28px}
+.stepcard strong{display:block;font-size:13px;font-weight:800}
+.stepcard small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.stepcard.done{border-color:#c9e8d2;background:var(--green-softer)}
+.stepcard.done .n{background:var(--green);color:#fff}
+.stepcard.current{border-color:var(--black);background:#fafbfc}
+.stepcard.current .n{background:var(--black);color:#fff}
+
+.two-cards{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.acts button{min-height:54px;border:1px solid var(--line);border-radius:12px;background:#fff;text-align:left;padding:10px 12px;font-weight:700;font-size:13px}
+.acts button small{display:block;color:var(--muted);font-size:11px;margin-top:2px;font-weight:500}
+.togs{display:grid;gap:8px}
+.tog{display:flex;justify-content:space-between;align-items:center;border:1px solid var(--line-2);border-radius:12px;padding:10px 12px;background:var(--panel-2)}
+.tog strong{font-size:13px;font-weight:700}
+.tog small{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.toggle{width:40px;height:22px;border-radius:999px;background:#d5d9de;position:relative;flex:0 0 40px}
+.toggle::after{content:"";position:absolute;width:16px;height:16px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 2px rgba(0,0,0,.2)}
+.toggle.on{background:var(--green)}
+.toggle.on::after{left:21px}
+
+/* ======== ALL XML ======== */
+.xml{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.xml-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.xml-head h2{margin:0;font-size:17px;font-weight:800}
+.xml-head p{margin:3px 0 0;color:var(--muted);font-size:12px;max-width:560px}
+.xml-search{min-height:40px;border:1px solid var(--line);border-radius:10px;padding:0 14px;font-size:13px;min-width:260px;background:var(--panel-2)}
+.warn{background:#fff7e6;border:1px solid #f4dea3;color:#7a4c0c;border-radius:10px;padding:8px 12px;font-size:12px;display:flex;gap:8px}
+.filters{display:flex;flex-wrap:wrap;gap:6px}
+.filters .p{min-height:30px;padding:0 10px;border:1px solid var(--line);background:#fff;border-radius:999px;font-size:12px;font-weight:600;display:inline-flex;align-items:center;gap:6px;color:var(--text-2)}
+.filters .p.active{background:var(--black);color:#fff;border-color:var(--black)}
+.filters .p .c{background:var(--panel-2);color:var(--muted);padding:1px 6px;border-radius:999px;font-size:10px;font-weight:700}
+.filters .p.active .c{background:rgba(255,255,255,.18);color:#fff}
+
+.stats{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+.stat{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--panel-2)}
+.stat .k{font-size:11px;color:var(--muted);font-weight:600}
+.stat .v{font-size:18px;font-weight:900;margin-top:2px}
+.table{border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.thead,.trow{display:grid;grid-template-columns:100px 110px 1.2fr 1fr;gap:10px;padding:10px 12px;align-items:center}
+.thead{background:var(--panel-2);color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.06em;font-weight:800;border-bottom:1px solid var(--line)}
+.trow{border-bottom:1px solid var(--line-2);font-size:12px}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:var(--panel-2)}
+.trow .grp{color:var(--muted);font-weight:600}
+.trow .tag{color:var(--green-ink);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600}
+.trow .par{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700}
+.trow .val{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:700;color:var(--green-ink)}
+.trow .val.off{color:var(--red)}
+
+/* ======== ACCESSIBILITY MODES ======== */
+body.mode-easy .tile{min-height:86px}
+body.mode-easy .tile strong{font-size:17px}
+body.mode-easy .key{min-height:76px;font-size:26px}
+body.mode-easy .paytile{min-height:78px}
+body.mode-easy .paytile strong{font-size:16px}
+
+body.mode-kid .reg{grid-template-columns:1.2fr 1fr}
+body.mode-kid .amount-card{order:-1;background:var(--black);color:#fff;border-color:var(--black)}
+body.mode-kid .amount-card .k{color:var(--muted-2)}
+body.mode-kid .amount-card .v{font-size:44px;color:#fff}
+body.mode-kid .amount-card .v.zero{color:var(--muted)}
+body.mode-kid .amount-card .h{display:none}
+body.mode-kid .amount-card::after{content:"Tap numbers →";display:block;margin-top:6px;font-size:12px;color:var(--green);font-weight:700}
+body.mode-kid .tiles{grid-template-columns:1fr 1fr;gap:12px}
+body.mode-kid .tile{min-height:110px;justify-content:center;align-items:center;text-align:center}
+body.mode-kid .tile strong{font-size:22px}
+body.mode-kid .tile .sub{display:none}
+body.mode-kid .paygrid{grid-template-columns:1fr 1fr;gap:12px}
+body.mode-kid .paytile{min-height:110px}
+body.mode-kid .paytile strong{font-size:20px}
+body.mode-kid .tabbar{display:none}
+body.mode-kid .mainaction{display:none}
+body.mode-kid .keypad-wrap{padding:12px;background:var(--green-softer);border-color:#bfe6c9}
+body.mode-kid .cap{font-size:13px;color:var(--green-ink);text-transform:none;letter-spacing:0;font-weight:800;padding:4px 2px}
+body.mode-kid .key{min-height:86px;font-size:32px;border-width:2px}
+body.mode-kid .clear-btn{min-height:54px;font-size:15px}
+body.mode-kid .total-card .v{font-size:40px}
+body.mode-kid .confirm{min-height:72px;font-size:19px}
+
+/* tweaks */
+#tweaks{position:fixed;right:14px;bottom:14px;width:260px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;box-shadow:0 20px 40px rgba(0,0,0,.2);z-index:60;display:none}
+#tweaks.open{display:block}
+#tweaks h4{margin:0 0 8px;font-size:13px;font-weight:800;display:flex;justify-content:space-between;align-items:center}
+#tweaks h4 button{background:transparent;border:none;color:var(--muted)}
+.tw{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:12.5px;gap:8px}
+.tw:last-child{border-bottom:none}
+.tw select,.tw input{font:inherit;border:1px solid var(--line);border-radius:8px;padding:3px 6px;font-size:12px;background:#fff}
+.tw input[type=color]{width:32px;height:24px;padding:0}
+
+@media (max-width:1100px){
+  .reg{grid-template-columns:1fr;gap:10px}
+  .config{grid-template-columns:1fr}
+  .cfg-cards{grid-template-columns:1fr 1fr}
+  .two-cards{grid-template-columns:1fr}
+  .stepgrid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .thead,.trow{grid-template-columns:1fr 1fr}
+  .thead .grp,.thead .tag{display:none}
+}
+</style>
+</head>
+<body class="mode-easy" data-screen-label="PEM Simple POS">
+
+<div class="app">
+
+  <div class="topbar">
+    <div class="brand">
+      <h1>PEM touch for dummies</h1>
+      <p>Touch-first mock · document always visible</p>
+    </div>
+    <div class="meta">
+      <span class="pill"><b>Model:</b> EPSON FP81II RT MODIFICATO</span>
+      <span class="pill"><b>Serial:</b> 99MEX080112</span>
+      <span class="pill"><b>Device cert.:</b> 19/04/2029</span>
+      <span class="pill"><b>Epson XML:</b> 1772 parameters</span>
+      <span class="pill ok"><b>PEL</b> Online</span>
+    </div>
+  </div>
+
+  <div class="switchrow">
+    <div class="grp shell">
+      <button class="active" data-shell="cash">Easy register</button>
+      <button data-shell="config">Easy configuration</button>
+      <button data-shell="params">All XML parameters</button>
+    </div>
+    <div class="grp grow"></div>
+    <div class="divider"></div>
+    <div class="grp mode">
+      <button data-mode="pro">Pro</button>
+      <button class="active" data-mode="easy">Easy</button>
+      <button data-mode="kid">Kid</button>
+    </div>
+  </div>
+
+  <!-- ================= EASY REGISTER ================= -->
+  <section class="view active" id="cashView">
+    <div class="reg">
+
+      <!-- LEFT: BILL -->
+      <div class="bill">
+        <div class="bill-head">
+          <div>
+            <div class="k">PEM</div>
+            <div class="v">99MEX080112</div>
+          </div>
+          <div>
+            <div class="k">Status</div>
+            <div class="v" style="color:var(--green-ink)">Open</div>
+          </div>
+        </div>
+        <div class="bill-lines">
+          <div class="bline"><div><div class="name">Apparel</div><div class="sub">Dept. 1 · sale</div></div><div class="amt">€39.90</div><button class="x">✕</button></div>
+          <div class="bline"><div><div class="name">Accessories</div><div class="sub">Dept. 2 · sale</div></div><div class="amt">€12.00</div><button class="x">✕</button></div>
+        </div>
+        <div class="bill-totals">
+          <div class="ttl"><span>Subtotal</span><strong>€51.90</strong></div>
+          <div class="ttl"><span>Discounts / refunds</span><strong>€0.00</strong></div>
+          <div class="ttl grand"><span>Amount due</span><strong>€51.90</strong></div>
+        </div>
+        <div class="bill-footer">
+          <div class="bline-note"><span><b>Customer:</b> No customer data.</span><span style="color:var(--muted-2)">change</span></div>
+          <div class="bline-note"><span><b>Receipt mode:</b> Paper</span><span style="color:var(--muted-2)">switch</span></div>
+          <div class="bline-note pay"><span><span class="iconbox"></span><b>Payment:</b> Cash</span></div>
+        </div>
+      </div>
+
+      <!-- CENTER: SELL -->
+      <div class="sell">
+        <div class="tabbar">
+          <button class="active">Sell &amp; Take payment</button>
+          <button>Customer &amp; Extras</button>
+        </div>
+
+        <button class="mainaction"><span class="plus">+</span> Sell &amp; Take payment</button>
+
+        <div class="amount-card">
+          <div class="k">Typed amount</div>
+          <div class="v zero">€0.00</div>
+          <div class="h">Type the amount, then tap a department or payment.</div>
+        </div>
+
+        <div class="section">
+          <div class="label">Departments</div>
+          <div class="tiles">
+            <button class="tile"><strong>Apparel</strong><span class="sub">Adds line</span></button>
+            <button class="tile"><strong>Accessories</strong><span class="sub">Adds line</span></button>
+            <button class="tile"><strong>Service</strong><span class="sub">Adds line</span></button>
+            <button class="tile active"><strong>Exempt</strong><span class="sub">Adds line</span></button>
+            <button class="tile"><strong>Open price</strong><span class="sub">Manual line</span></button>
+            <button class="tile"><strong>More departments</strong><span class="sub">Full list</span></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: KEYPAD + TOTAL + PAYMENT -->
+      <div class="right">
+        <div class="cap">Keypad</div>
+        <div class="keypad-wrap">
+          <div class="keypad">
+            <button class="key">1</button><button class="key">2</button><button class="key">3</button>
+            <button class="key">4</button><button class="key">5</button><button class="key">6</button>
+            <button class="key">7</button><button class="key">8</button><button class="key">9</button>
+            <button class="key muted">.</button>
+            <button class="key">0</button>
+            <button class="key back" title="Backspace">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6H9l-6 6 6 6h11a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+            </button>
+          </div>
+          <button class="clear-btn">Clear all</button>
+        </div>
+
+        <div class="total-card">
+          <div class="k">Total payable amount</div>
+          <div class="v">€51.90</div>
+          <div class="h">No payments recorded.</div>
+        </div>
+
+        <div class="cap">Payment mode</div>
+        <div class="paygrid">
+          <button class="paytile active"><strong>Cash</strong><span class="sub">Record payment</span></button>
+          <button class="paytile"><strong>Card</strong><span class="sub">Record payment</span></button>
+          <button class="paytile"><strong>Voucher</strong><span class="sub">Record payment</span></button>
+          <button class="paytile"><strong>Other</strong><span class="sub">Record payment</span></button>
+        </div>
+
+        <button class="confirm"><span class="plus">+</span> Confirm payment <span class="pill">Cash</span></button>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ================= EASY CONFIG ================= -->
+  <section class="view" id="configView">
+    <div class="config">
+      <aside class="config-side">
+        <div>
+          <h3>Easy configuration</h3>
+          <p>Only what a shopkeeper needs. Tax slots, certificates and keyboard maps stay under Advanced.</p>
+        </div>
+        <div>
+          <h3 style="margin-bottom:6px">Device status</h3>
+          <div class="minikv">
+            <div class="row"><span class="k">Model</span><span class="v">FP81II RT</span></div>
+            <div class="row"><span class="k">Serial</span><span class="v">99MEX080112</span></div>
+            <div class="row"><span class="k">Firmware</span><span class="v">12.04 · 379</span></div>
+            <div class="row"><span class="k">Cert.</span><span class="v">19/04/2029</span></div>
+            <div class="row"><span class="k">DGFE</span><span class="v">1% used</span></div>
+            <div class="row"><span class="k">Closures</span><span class="v">1594</span></div>
+          </div>
+        </div>
+      </aside>
+
+      <div class="config-main">
+        <div class="cfg-cards">
+          <button class="cfg-card"><div class="ico">🏪</div><h4>Shop &amp; bill</h4><p>Header lines, logo, paper width.</p></button>
+          <button class="cfg-card"><div class="ico">🧾</div><h4>Items &amp; tax</h4><p>6 favourites, GST / VAT rate.</p></button>
+          <button class="cfg-card"><div class="ico">💳</div><h4>Payments &amp; staff</h4><p>Cash, card, UPI, vouchers, PINs.</p></button>
+          <button class="cfg-card expert"><div class="ico">⚙</div><h4>Advanced</h4><p>Network, certificates, XML, keymap.</p></button>
+        </div>
+
+        <div class="guided">
+          <div style="display:flex;justify-content:space-between;align-items:baseline">
+            <div>
+              <h3>Guided setup</h3>
+              <p>First-time checklist. Start here — everything else can wait.</p>
+            </div>
+            <span class="meta"><span class="pill ok"><b>5 of 6</b> done</span></span>
+          </div>
+          <div class="stepgrid">
+            <div class="stepcard done"><div class="n">✓</div><div><strong>Shop header</strong><small>Name &amp; address done</small></div></div>
+            <div class="stepcard done"><div class="n">✓</div><div><strong>Departments</strong><small>6 favourites chosen</small></div></div>
+            <div class="stepcard done"><div class="n">✓</div><div><strong>Payments</strong><small>Cash, card, vouchers on</small></div></div>
+            <div class="stepcard done"><div class="n">✓</div><div><strong>Network</strong><small>Wifi auto-detected</small></div></div>
+            <div class="stepcard done"><div class="n">✓</div><div><strong>Certificates</strong><small>Auto — nothing to do</small></div></div>
+            <div class="stepcard current"><div class="n">6</div><div><strong>Test bill</strong><small>Print &amp; send one demo</small></div></div>
+          </div>
+        </div>
+
+        <div class="two-cards">
+          <div class="guided">
+            <h3>Quick tests</h3>
+            <p>Four clear buttons to confirm the PEM is ready.</p>
+            <div class="acts">
+              <button>Print test<small>Check layout</small></button>
+              <button>Ping PEL<small>Connection check</small></button>
+              <button>Check certificates<small>Auto-renew</small></button>
+              <button>Send test<small>Demo document</small></button>
+            </div>
+          </div>
+          <div class="guided">
+            <h3>Today</h3>
+            <p>What actually matters right now.</p>
+            <div class="togs">
+              <div class="tog"><div><strong>Auto close at 23:00</strong><small>Closes the fiscal day for you</small></div><div class="toggle on"></div></div>
+              <div class="tog"><div><strong>Daily email summary</strong><small>Totals sent to owner@shop.it</small></div><div class="toggle on"></div></div>
+              <div class="tog"><div><strong>Digital receipt default</strong><small>QR instead of paper</small></div><div class="toggle"></div></div>
+              <div class="tog"><div><strong>PIN for refunds</strong><small>Safer with multiple staff</small></div><div class="toggle on"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= ALL XML ================= -->
+  <section class="view" id="paramsView">
+    <div class="xml">
+      <div class="xml-head">
+        <div>
+          <h2>All XML parameters — Epson FP81II</h2>
+          <p>Full technical view. Nothing removed from the original XML. The simple pages cover daily use; every attribute stays searchable here.</p>
+        </div>
+        <input class="xml-search" placeholder="Search tag, parameter or value…">
+      </div>
+      <div class="warn">⚠ For installers and support. Changes here can block the PEM. Use Easy configuration for normal edits.</div>
+      <div class="filters">
+        <span class="p active">All <span class="c">1772</span></span>
+        <span class="p">Device <span class="c">31</span></span>
+        <span class="p">Store &amp; header <span class="c">25</span></span>
+        <span class="p">VAT &amp; nature <span class="c">86</span></span>
+        <span class="p">Departments <span class="c">1089</span></span>
+        <span class="p">Payments <span class="c">55</span></span>
+        <span class="p">Operators &amp; access <span class="c">39</span></span>
+        <span class="p">Document &amp; print <span class="c">17</span></span>
+        <span class="p">Network &amp; services <span class="c">52</span></span>
+        <span class="p">Smart services <span class="c">22</span></span>
+        <span class="p">Compliance <span class="c">120</span></span>
+        <span class="p">Keyboard map <span class="c">256</span></span>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">Device</div><div class="v">31</div></div>
+        <div class="stat"><div class="k">Store &amp; header</div><div class="v">25</div></div>
+        <div class="stat"><div class="k">VAT &amp; nature</div><div class="v">86</div></div>
+        <div class="stat"><div class="k">Departments</div><div class="v">1089</div></div>
+        <div class="stat"><div class="k">Payments</div><div class="v">55</div></div>
+        <div class="stat"><div class="k">Operators</div><div class="v">39</div></div>
+      </div>
+      <div class="table">
+        <div class="thead"><div>Group</div><div>Tag XML</div><div>Parameter</div><div>Value</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">fiscalPrinterModel</div><div class="val">EPSON FP81II RT MODIFICATO</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">fiscalSerialNumber</div><div class="val">99MEX080112</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">CPUVersion</div><div class="val">12.04</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">FW_Major_Version</div><div class="val">12</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">FW_Minor_Version</div><div class="val">04</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">FW_Build_Number</div><div class="val">379</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">fiscalMemoryVersion</div><div class="val">4.3</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTDeviceType</div><div class="val">M</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTMainState</div><div class="val">2</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTSubState</div><div class="val">8</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTDayOpened</div><div class="val off">False</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTNonWorkingPeriod</div><div class="val off">False</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTNumberOfCurrentFiles</div><div class="val">0</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTNumberOfRejectedFiles</div><div class="val">1</div></div>
+        <div class="trow"><div class="grp">Device</div><div class="tag">settings</div><div class="par">RTDateDeviceCertificateExpiration</div><div class="val">19/04/2029</div></div>
+      </div>
+      <p style="color:var(--muted);font-size:11px;margin:4px 0 0">Showing 15 of 1772 · filter or search above to narrow.</p>
+    </div>
+  </section>
+</div>
+
+<!-- tweaks -->
+<div id="tweaks">
+  <h4>Tweaks <button id="tw-close">✕</button></h4>
+  <div class="tw"><span>Mode</span><select id="tw-mode"><option value="pro">Pro (dense)</option><option value="easy" selected>Easy</option><option value="kid">Kid (picture only)</option></select></div>
+  <div class="tw"><span>Shell</span><select id="tw-shell"><option value="cash" selected>Easy register</option><option value="config">Easy configuration</option><option value="params">All XML parameters</option></select></div>
+  <div class="tw"><span>Accent</span><input type="color" id="tw-green" value="#22A447"></div>
+  <div class="tw"><span>Currency</span><select id="tw-cur"><option value="€" selected>€</option><option value="₹">₹</option><option value="$">$</option></select></div>
+</div>
+
+<script>
+  const shellBtns=document.querySelectorAll('[data-shell]');
+  const views={cash:cashView,config:configView,params:paramsView};
+  function showShell(n){shellBtns.forEach(b=>b.classList.toggle('active',b.dataset.shell===n));Object.entries(views).forEach(([k,v])=>v.classList.toggle('active',k===n));try{localStorage.setItem('pem_shell',n)}catch(e){}const s=document.getElementById('tw-shell');if(s)s.value=n}
+  shellBtns.forEach(b=>b.addEventListener('click',()=>showShell(b.dataset.shell)));
+
+  const modeBtns=document.querySelectorAll('[data-mode]');
+  function setMode(m){document.body.classList.remove('mode-pro','mode-easy','mode-kid');document.body.classList.add('mode-'+m);modeBtns.forEach(b=>b.classList.toggle('active',b.dataset.mode===m));try{localStorage.setItem('pem_mode',m)}catch(e){}const s=document.getElementById('tw-mode');if(s)s.value=m}
+  modeBtns.forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));
+
+  try{const s=localStorage.getItem('pem_shell');if(s)showShell(s);const m=localStorage.getItem('pem_mode');if(m)setMode(m);else setMode('easy')}catch(e){setMode('easy')}
+
+  function setGreen(hex){document.documentElement.style.setProperty('--green',hex)}
+  function setCurrency(sym){document.querySelectorAll('*').forEach(n=>{if(n.children.length===0&&n.textContent){n.textContent=n.textContent.replace(/[€₹$](?=\s*\d|\s*0)/g,sym)}})}
+
+  const TWEAK_DEFAULTS=/*EDITMODE-BEGIN*/{
+    "mode": "easy",
+    "shell": "params",
+    "green": "#22A447",
+    "currency": "€"
+  }/*EDITMODE-END*/;
+  function apply(o){if(o.mode)setMode(o.mode);if(o.shell)showShell(o.shell);if(o.green){document.getElementById('tw-green').value=o.green;setGreen(o.green)}if(o.currency){document.getElementById('tw-cur').value=o.currency;setCurrency(o.currency)}}
+  apply(TWEAK_DEFAULTS);
+
+  function send(edits){window.parent.postMessage({type:'__edit_mode_set_keys',edits},'*')}
+  document.getElementById('tw-mode').addEventListener('change',e=>{setMode(e.target.value);send({mode:e.target.value})});
+  document.getElementById('tw-shell').addEventListener('change',e=>{showShell(e.target.value);send({shell:e.target.value})});
+  document.getElementById('tw-green').addEventListener('input',e=>{setGreen(e.target.value);send({green:e.target.value})});
+  document.getElementById('tw-cur').addEventListener('change',e=>{setCurrency(e.target.value);send({currency:e.target.value})});
+
+  const panel=document.getElementById('tweaks');
+  document.getElementById('tw-close').addEventListener('click',()=>panel.classList.remove('open'));
+  window.addEventListener('message',ev=>{const d=ev.data||{};if(d.type==='__activate_edit_mode')panel.classList.add('open');if(d.type==='__deactivate_edit_mode')panel.classList.remove('open')});
+  window.parent.postMessage({type:'__edit_mode_available'},'*');
+</script>
+</body>
+</html>
